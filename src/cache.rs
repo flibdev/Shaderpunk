@@ -1,16 +1,19 @@
-use std::{fmt, io};
+use std::io;
 
-use hashbrown::HashMap;
+//use hashbrown::HashMap;
 
 use crate::decode::{Decode, DecodeExt};
-use crate::encode::Encode;
-use crate::hashmap::PassThruHasher;
-use crate::timestamp::TimestampTD;
+use crate::types::cname::CName;
+use crate::types::samplerstate::SampleStateInfo;
+//use crate::encode::Encode;
+//use crate::hashmap::PassThruHasher;
+use crate::types::timestamp::TimestampTD;
 
 
 pub struct CacheFile {
     pub info: InfoBlock,
     pub shaders: Vec<Shader>,
+    pub materials: Vec<Material>
 }
 
 impl CacheFile {
@@ -27,16 +30,33 @@ impl CacheFile {
             shaders.push(input.decode()?);
         }
 
+        // Sanity check
+        if input.stream_position().unwrap() != info.material_offset {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "Shader block size mismatch"));
+        }
+
+        let mut materials: Vec<Material> = Vec::with_capacity(info.material_count as usize);
+        for _ in 0..info.material_count {
+            materials.push(input.decode()?);
+        }
+
+        // Sanity check
+        if input.stream_position().unwrap() != info.param_offset {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "Shader block size mismatch"));
+        }
+
+
         let cache = CacheFile {
             info,
-            shaders
+            shaders,
+            materials
         };
         Ok(cache)
     }
 }
 
 
-
+#[allow(dead_code)]
 #[derive(Debug, Default)]
 pub struct InfoBlock {
     timestamp: TimestampTD,
@@ -131,6 +151,7 @@ impl Decode for InfoBlock {
 
 pub struct Shader {
     pub hash: u64,
+    #[allow(dead_code)]
     unknown: u64,
     pub compiled: Vec<u8>
 }
@@ -148,5 +169,64 @@ impl Decode for Shader {
             unknown,
             compiled
         })
+    }
+}
+
+
+pub struct Material {
+    pub hash: u64,
+    pub name: CName,
+    pub vs_hash: u64,
+    pub ps_hash: u64,
+    pub timestamp: TimestampTD,
+    pub vs_samplers: Vec<SampleStateInfo>,
+    pub ps_samplers: Vec<SampleStateInfo>
+}
+
+impl Decode for Material {
+    fn decode<I: io::Read>(input: &mut I) -> io::Result<Self> {
+        let mut _u32: u32;
+        let mut _u64: u64;
+
+        let hash: u64 = input.decode()?;
+        let name: CName = input.decode()?;
+
+        // Ignored by the game
+        _u32 = input.decode()?;
+
+        let vs_hash: u64 = input.decode()?;
+        let ps_hash: u64 = input.decode()?;
+
+        // Ignored by the game
+        _u64 = input.decode()?;
+        _u64 = input.decode()?;
+
+        let timestamp: TimestampTD = input.decode()?;
+        
+        // Ignored by the game
+        _u32 = input.decode()?;
+        
+        let vs_sampler_count: u32 = input.decode()?;
+        let mut vs_samplers: Vec<SampleStateInfo> = Vec::new();
+        for _ in 0..vs_sampler_count {
+            vs_samplers.push(input.decode()?);
+        }
+
+        let ps_sampler_count: u32 = input.decode()?;
+        let mut ps_samplers: Vec<SampleStateInfo> = Vec::new();
+        for _ in 0..ps_sampler_count {
+            ps_samplers.push(input.decode()?);
+        }
+
+        Ok(Material {
+            hash,
+            name,
+            vs_hash,
+            ps_hash,
+            timestamp,
+            vs_samplers,
+            ps_samplers
+        })
+
     }
 }

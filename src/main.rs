@@ -10,15 +10,17 @@ pub mod cache;
 pub mod encode;
 pub mod decode;
 pub mod hashmap;
-pub mod timestamp;
+pub mod types;
 
 fn main() -> anyhow::Result<()> {
 
-    let file: CacheFile = load_shader_cache(Path::new("C:\\CP77\\Builds\\2.21\\shader_final.cache"))?;
+    let file = load_shader_cache(Path::new("C:\\CP77\\Builds\\2.21\\shader_final.cache"))?;
 
     println!("{:?}", file.info);
 
     println!("Shader[16] = {:#x}", file.shaders[16].hash);
+
+    println!("Material[16] = {:?}", file.materials[16].name);
     
     Ok(())
 }
