@@ -4,7 +4,7 @@ use std::io;
 
 use crate::decode::{Decode, DecodeExt};
 use crate::types::cname::CName;
-use crate::types::samplerstate::SampleStateInfo;
+use crate::types::rtti_structs::SampleStateInfo;
 //use crate::encode::Encode;
 //use crate::hashmap::PassThruHasher;
 use crate::types::timestamp::TimestampTD;
@@ -12,8 +12,9 @@ use crate::types::timestamp::TimestampTD;
 
 pub struct CacheFile {
     pub info: InfoBlock,
-    pub shaders: Vec<Shader>,
-    pub materials: Vec<Material>
+    pub shaders: Vec<ShaderBlock>,
+    pub materials: Vec<MaterialBlock>,
+    pub params: Vec<ParamsChunk>,
 }
 
 impl CacheFile {
@@ -25,7 +26,7 @@ impl CacheFile {
         // Shaders start at the beginning of the file
         input.seek(io::SeekFrom::Start(0))?;
 
-        let mut shaders: Vec<Shader> = Vec::with_capacity(info.shader_count as usize);
+        let mut shaders: Vec<ShaderBlock> = Vec::with_capacity(info.shader_count as usize);
         for _ in 0..info.shader_count {
             shaders.push(input.decode()?);
         }
@@ -35,7 +36,7 @@ impl CacheFile {
             return Err(io::Error::new(io::ErrorKind::InvalidData, "Shader block size mismatch"));
         }
 
-        let mut materials: Vec<Material> = Vec::with_capacity(info.material_count as usize);
+        let mut materials: Vec<MaterialBlock> = Vec::with_capacity(info.material_count as usize);
         for _ in 0..info.material_count {
             materials.push(input.decode()?);
         }
@@ -45,11 +46,22 @@ impl CacheFile {
             return Err(io::Error::new(io::ErrorKind::InvalidData, "Shader block size mismatch"));
         }
 
+        let mut params: Vec<ParamsChunk> = Vec::with_capacity(info.param_count as usize);
+        for _ in 0..info.param_count {
+            params.push(input.decode()?);
+        }
+
+        // Sanity check
+        if input.stream_position().unwrap() != info.time_offset {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "Shader block size mismatch"));
+        }
+
 
         let cache = CacheFile {
             info,
             shaders,
-            materials
+            materials,
+            params
         };
         Ok(cache)
     }
@@ -149,31 +161,30 @@ impl Decode for InfoBlock {
 
 
 
-pub struct Shader {
+pub struct ShaderBlock {
     pub hash: u64,
-    #[allow(dead_code)]
-    unknown: u64,
+    pub params: u64,
     pub compiled: Vec<u8>
 }
 
-impl Decode for Shader {
+impl Decode for ShaderBlock {
     fn decode<I: io::Read>(input: &mut I) -> io::Result<Self> {
         let hash: u64 = input.decode()?;
-        let unknown: u64 = input.decode()?;
+        let params: u64 = input.decode()?;
         let size: u32 = input.decode()?;
         let mut compiled: Vec<u8> = vec![0u8; size as usize];
         input.read_exact(&mut compiled)?;
 
-        Ok(Shader {
+        Ok(ShaderBlock {
             hash,
-            unknown,
+            params,
             compiled
         })
     }
 }
 
 
-pub struct Material {
+pub struct MaterialBlock {
     pub hash: u64,
     pub name: CName,
     pub vs_hash: u64,
@@ -183,7 +194,7 @@ pub struct Material {
     pub ps_samplers: Vec<SampleStateInfo>
 }
 
-impl Decode for Material {
+impl Decode for MaterialBlock {
     fn decode<I: io::Read>(input: &mut I) -> io::Result<Self> {
         let mut _u32: u32;
         let mut _u64: u64;
@@ -218,7 +229,7 @@ impl Decode for Material {
             ps_samplers.push(input.decode()?);
         }
 
-        Ok(Material {
+        Ok(MaterialBlock {
             hash,
             name,
             vs_hash,
@@ -228,5 +239,50 @@ impl Decode for Material {
             ps_samplers
         })
 
+    }
+}
+
+
+
+pub struct ParamChunk {
+    pub name: CName,
+    // Value? Lookup? Shader register?
+    pub value: u8,
+    // Always 1 or 4, memory size? scalar vs vec vs matrix?
+    // 4 == Matrix
+    pub size: u8,
+}
+
+impl Decode for ParamChunk {
+    fn decode<I: io::Read>(input: &mut I) -> io::Result<Self> {
+        let name: CName = input.decode()?;
+        let value: u8 = input.decode()?;
+        let size: u8 = input.decode()?;
+
+        Ok(ParamChunk { name, value, size })
+    }
+}
+
+pub struct ParamsChunk {
+    pub hash: u64,
+    pub mat_mod_mask: u32,
+    pub params: Vec<ParamChunk>,
+}
+
+impl Decode for ParamsChunk {
+    fn decode<I: io::Read>(input: &mut I) -> io::Result<Self> {
+        let hash: u64 = input.decode()?;
+        let mat_mod_mask: u32 = input.decode()?;
+        let count: u32 = input.decode()?;
+        let mut params: Vec<ParamChunk> = Vec::with_capacity(count as usize);
+        for _ in 0..count {
+            params.push(input.decode()?);
+        }
+
+        Ok(ParamsChunk {
+            hash,
+            mat_mod_mask,
+            params
+        })
     }
 }

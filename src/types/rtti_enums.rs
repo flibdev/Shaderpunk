@@ -5,13 +5,12 @@
 use enum_try_from::impl_enum_try_from;
 use thiserror::Error;
 
-use crate::decode::{Decode, DecodeExt};
-
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum EnumError {
     #[error("Invalid Value")]
     InvalidValue,
 }
+
 
 impl_enum_try_from!(
     #[repr(u8)]
@@ -90,37 +89,45 @@ impl_enum_try_from!(
 );
 
 
-pub struct SampleStateInfo {
-    pub filteringMin: ETextureFilteringMin,
-    pub filteringMag: ETextureFilteringMag,
-    pub filteringMip: ETextureFilteringMip,
-    pub addressU: ETextureAddressing,
-    pub addressV: ETextureAddressing,
-    pub addressW: ETextureAddressing,
-    pub comparisonFunc: ETextureComparisonFunction,
-    pub register: u8
-}
-
-impl Decode for SampleStateInfo {
-    fn decode<I: std::io::Read>(input: &mut I) -> std::io::Result<Self> {
-        let filteringMin: u8 = input.decode()?;
-        let filteringMag: u8 = input.decode()?;
-        let filteringMip: u8 = input.decode()?;
-        let addressU: u8 = input.decode()?;
-        let addressV: u8 = input.decode()?;
-        let addressW: u8 = input.decode()?;
-        let comparisonFunc: u8 = input.decode()?;
-        let register: u8 = input.decode()?;
-
-        Ok(SampleStateInfo {
-            filteringMin: ETextureFilteringMin::try_from(filteringMin).unwrap(),
-            filteringMag: ETextureFilteringMag::try_from(filteringMag).unwrap(),
-            filteringMip: ETextureFilteringMip::try_from(filteringMip).unwrap(),
-            addressU: ETextureAddressing::try_from(addressU).unwrap(),
-            addressV: ETextureAddressing::try_from(addressV).unwrap(),
-            addressW: ETextureAddressing::try_from(addressW).unwrap(),
-            comparisonFunc: ETextureComparisonFunction::try_from(comparisonFunc).unwrap(),
-            register
-        })
-    }
-}
+impl_enum_try_from!(
+    #[repr(u8)]
+    #[derive(PartialEq, Eq, Debug)]
+    pub enum EMaterialModifier {
+        EMATMOD_HitProxy                = 0,
+        EMATMOD_WindData                = 1,
+        EMATMOD_ParticleParams          = 2,
+        EMATMOD_RemoteCamera            = 3,
+        EMATMOD_Mirror                  = 4,
+        EMATMOD_CustomStructBuffer      = 5,
+        EMATMOD_EffectParams            = 6,
+        EMATMOD_MotionMatrix            = 7,
+        EMATMOD_ColorAndTexture         = 8,
+        EMATMOD_MaterialParams          = 9,
+        EMATMOD_Eye                     = 10,
+        EMATMOD_Skin                    = 11,
+        EMATMOD_VehicleParams           = 12,
+        EMATMOD_Dismemberment           = 13,
+        EMATMOD_Garments                = 14,
+        EMATMOD_ShadowsDebugParams      = 15,
+        EMATMOD_MultilayeredDebug       = 16,
+        EMATMOD_ParallaxParams          = 17,
+        EMATMOD_HighlightsParams        = 18,
+        EMATMOD_DebugColoring           = 19,
+        EMATMOD_DrawBufferMask          = 20,
+        EMATMOD_AutoSpawnData           = 21,
+        EMATMOD_DestructionRegions      = 22,
+        EMATMOD_FloatTracks             = 23,
+        EMATMOD_AutoHideDistance        = 24,
+        EMATMOD_Rain                    = 25,
+        EMATMOD_PlanarReflections       = 26,
+        EMATMOD_WaterSim                = 27,
+        EMATMOD_TransparencyClipParams  = 28,
+        EMATMOD_FlatTireParams          = 29,
+        EMATMOD_SecondMultilayerParams  = 30,
+        EMATMOD_CrystalCoat             = 31,
+        EMATMOD_MAX                     = 32,
+    },
+    u8,
+    EnumError,
+    EnumError::InvalidValue
+);

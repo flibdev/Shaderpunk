@@ -4,9 +4,11 @@ use std::path::Path;
 use anyhow::Context;
 use vmap::Map;
 
-use cache::CacheFile;
+use types::cname::CName;
+use cachefile::CacheFile;
+use hashmap::{CNameHashMap32, CNameKey32};
 
-pub mod cache;
+pub mod cachefile;
 pub mod encode;
 pub mod decode;
 pub mod hashmap;
@@ -18,9 +20,34 @@ fn main() -> anyhow::Result<()> {
 
     println!("{:?}", file.info);
 
-    println!("Shader[16] = {:#x}", file.shaders[16].hash);
+    //let passthru = HashMap::<u32, u64, PassThruHasher32>::default();
+    let mut materials = CNameHashMap32::<String>::default();
+    let mut mat_names: Vec<String> = Vec::new();
 
-    println!("Material[16] = {:?}", file.materials[16].name);
+    for m in file.materials {
+        let hashkey = CNameKey32::from_hash((m.hash >> 32).try_into().unwrap());
+        let filename = m.name.as_str().split(' ').next().unwrap();
+        let namekey = CNameKey32::from_cname(CName::new(filename));
+
+        if !materials.contains_key(&hashkey) {
+            mat_names.push(String::from(filename));
+            // 3 materials have a mismatch between filename and CName
+            if namekey != hashkey {
+                materials.insert(hashkey, String::from(filename));
+            }
+            else {
+                materials.insert(namekey, String::from(filename));
+            }
+        }
+    }
+
+    mat_names.sort();
+
+    println!("Material Count: {}", mat_names.len());
+    for m in mat_names {
+        println!("{}", m);
+    }
+    
     
     Ok(())
 }
