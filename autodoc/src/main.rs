@@ -1,29 +1,16 @@
-use std::io;
-use std::path::Path;
 
-use anyhow::Context;
-use vmap::Map;
+fn main() -> anyhow::Result<()> {
 
-use types::cname::CName;
-use types::rtti_enums::EMaterialVertexFactory;
-use material::{Material, Technique, TechniqueDesc};
-use cachefile::CacheFile;
-use hashmap::{CNameHashMap32, CNameKey32};
+    Ok(())
+}
 
-
-pub mod cachefile;
-pub mod encode;
-pub mod decode;
-pub mod hashmap;
-pub mod types;
-
-pub mod material;
-
+/*
 fn bool_2_tick(b: bool) -> &'static str { if b { "✓" } else { " " } }
 
 fn main() -> anyhow::Result<()> {
 
     let file = load_shader_cache(Path::new("C:\\CP77\\Builds\\2.21\\shader_final.cache"))?;
+    let tech_count = file.materials.len();
 
     //println!("{:?}", file.info);
 
@@ -55,60 +42,31 @@ fn main() -> anyhow::Result<()> {
     let mut mat_ord: Vec<Material> = materials.into_values().collect();
     mat_ord.sort_unstable_by(|a,b| { a.name.cmp(&b.name) });
 
+    println!("# Compiled Material Techniques");
+    println!("{} total materials.<br>", mat_ord.len());
+    println!("{} total compiled techniques.<br>", tech_count);
+    println!("");
+
     for m in mat_ord.iter_mut() {
-        println!("<details>");
-        println!("<summary>{} [{}]</summary>", m.name, m.techniques.len());
-        
         m.techniques.sort_unstable_by(|a,b| { a.partial_cmp(b).unwrap() });
 
-        println!("| Index | Pass | ID | Vertex Factory | DC | PS | DM |");
-        println!("|------:|------|---:|----------------|----|----|----|");
+        println!("## {}", m.name);
+        println!("| Index | Pass | Vertex Factory | Discard | PreSkin | Dismember |");
+        println!("|---|---|---|:-:|:-:|:-:|");
         for t in &m.techniques {
             
-            println!("| {} | {} | {} | {} | {} | {} | {} |",
+            println!("| {} | {} | {} | {} | {} | {} |",
                 t.desc.index,
                 t.desc.pass,
-                t.desc.encode_vf_id(),
                 t.desc.vertex_factory.to_string(),
                 bool_2_tick(t.desc.is_discarded),
                 bool_2_tick(t.desc.is_preskinned),
                 bool_2_tick(t.desc.is_dismembered)
             );
         }
-        println!("</details>");
+        println!("");
     }
-
-    //let passthru = HashMap::<u32, u64, PassThruHasher32>::default();
-    /*
-    let mut materials = CNameHashMap32::<String>::default();
-    let mut mat_names: Vec<String> = Vec::new();
-
-    for m in file.materials {
-        let hashkey: CNameKey32 = ((m.hash >> 32) as u32).into();
-        let filename = m.name.as_str().split(' ').next().unwrap();
-        let namekey: CNameKey32 = CName::new(filename).into();
-
-        if !materials.contains_key(&hashkey) {
-            mat_names.push(String::from(filename));
-            // 3 materials have a mismatch between filename and CName
-            if namekey != hashkey {
-                println!("Hash mismatch: {}", namekey);
-                materials.insert(hashkey, String::from(filename));
-            }
-            else {
-                materials.insert(namekey, String::from(filename));
-            }
-        }
-    }
-
-    mat_names.sort();
-
-    for m in mat_names {
-        println!("{}", m);
-    }
-    */
-
-    
+   
     Ok(())
 }
 
@@ -121,3 +79,4 @@ fn load_shader_cache(path: &Path) -> anyhow::Result<CacheFile> {
 
     CacheFile::load(&mut reader).context("Failed to load shader cache")
 }
+*/

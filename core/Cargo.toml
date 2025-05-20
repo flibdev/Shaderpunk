@@ -1,0 +1,22 @@
+[package]
+name = "shaderpunk"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+byteorder.workspace = true
+castaway.workspace = true
+chrono.workspace = true
+enum-try-from.workspace = true
+fnv_rs.workspace = true
+hashbrown.workspace = true
+modular-bitfield.workspace = true
+once_cell.workspace = true
+paste.workspace = true
+regex.workspace = true
+strum.workspace = true
+strum_macros.workspace = true
+thiserror.workspace = true
+vmap.workspace = true

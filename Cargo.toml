@@ -1,12 +1,20 @@
-[package]
-name = "Shaderpunk"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = [
+    "core",
+    "autodoc",
+]
+resolver = "2"
 
-[dependencies]
+[workspace.package]
+version = "0.1.0"
+authors = ["flib"]
+edition = "2021"
+
+[workspace.dependencies]
 anyhow = "1.0"
 byteorder = "1"
 castaway = "0.2"
+chrono = "0.4"
 enum-try-from = "0.0.1"
 fnv_rs = { git = "https://github.com/flibdev/fnv-rs.git" }
 hashbrown = "0.15"

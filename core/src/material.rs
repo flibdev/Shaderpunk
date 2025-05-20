@@ -3,8 +3,8 @@ use fnv_rs::{Fnv32, FnvHasher};
 use regex::Regex;
 use once_cell::sync::Lazy;
 
-use crate::types::rtti_enums::EMaterialVertexFactory;
-use crate::types::rtti_structs::SampleStateInfo;
+use crate::rtti_types::enums::EMaterialVertexFactory;
+use crate::rtti_types::structs::SampleStateInfo;
 
 
 pub struct Material {

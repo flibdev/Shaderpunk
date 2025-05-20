@@ -3,7 +3,7 @@ use std::hash::{ BuildHasherDefault, Hash, Hasher};
 use hashbrown::HashMap;
 use paste::paste;
 
-use crate::types::cname::CName;
+use crate::rtti_types::cname::CName;
 
 macro_rules! hash_format {
     (32) => { "[{:08X}]" };

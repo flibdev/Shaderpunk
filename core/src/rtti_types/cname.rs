@@ -5,7 +5,8 @@ use fnv_rs::{Fnv64, FnvHasher};
 
 //use crate::encode::Encode;
 use crate::decode::{Decode, DecodeExt};
-use crate::types::vlqint32::VLQInt32;
+use crate::encode::{Encode, EncodeExt};
+use crate::rtti_types::vlqint32::VLQInt32;
 
 #[derive(Debug, Default, Clone)]
 pub struct CName(String);
@@ -22,12 +23,16 @@ impl CName {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.0.len() == 0 || self.0 == CName::NONE
+    }
+
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }
 
     pub fn as_hash64(&self) -> u64 {
-        if self.0.len() == 0 || self.0 == CName::NONE {
+        if self.is_empty() {
             0
         }
         else {
@@ -87,6 +92,22 @@ impl From<CName> for String {
     }
 }
 
+impl Encode for CName {
+    fn encode<O: io::Write>(&self, output: &mut O) -> io::Result<()> {
+        if self.is_empty() {
+            output.encode(&[ 0x00 ])?;
+        }
+        else {
+            let prefix: VLQInt32 = VLQInt32::from(-(self.0.len() as i32));
+
+            output.encode(&prefix)?;
+            output.write_all(self.0.as_bytes())?;
+        }
+
+        Ok(())
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -140,5 +161,48 @@ mod tests {
         let cname: CName = reader.decode().unwrap();
         
         assert_eq!(cname.as_str(), "include_hair.fx");
+    }
+
+
+    #[test]
+    fn encode_empty() {
+        let buffer: Vec<u8> = Vec::new();
+        let mut writer = Cursor::new(buffer);
+        let cname: CName = CName::new("");
+
+        writer.encode(&cname).unwrap();
+
+        assert_eq!(writer.get_ref().len(), 1);
+        assert_eq!(writer.get_ref()[0], 0x00);
+    }
+
+    #[test]
+    fn encode_none() {
+        let buffer: Vec<u8> = Vec::new();
+        let mut writer = Cursor::new(buffer);
+        let cname: CName = CName::new(CName::NONE);
+
+        writer.encode(&cname).unwrap();
+
+        assert_eq!(writer.get_ref().len(), 1);
+        assert_eq!(writer.get_ref()[0], 0x00);
+    }
+
+    #[test]
+    fn encode_known() {
+        let buffer: Vec<u8> = Vec::new();
+        let mut writer = Cursor::new(buffer);
+        let cname: CName = CName::new("include_interpolators.fx");
+
+        writer.encode(&cname).unwrap();
+
+        assert_eq!(writer.get_ref().len(), 25);
+        assert_eq!(&writer.get_ref()[0..25], &[
+            0x98, 0x69, 0x6E, 0x63, 0x6C,
+            0x75, 0x64, 0x65, 0x5F, 0x69,
+            0x6E, 0x74, 0x65, 0x72, 0x70,
+            0x6F, 0x6C, 0x61, 0x74, 0x6F,
+            0x72, 0x73, 0x2E, 0x66, 0x78,
+        ]);
     }
 }

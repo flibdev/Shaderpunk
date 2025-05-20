@@ -3,11 +3,11 @@ use std::io;
 //use hashbrown::HashMap;
 
 use crate::decode::{Decode, DecodeExt};
-use crate::types::cname::CName;
-use crate::types::rtti_structs::SampleStateInfo;
+use crate::rtti_types::cname::CName;
+use crate::rtti_types::structs::SampleStateInfo;
 //use crate::encode::Encode;
 //use crate::hashmap::PassThruHasher;
-use crate::types::timestamp::TimestampTD;
+use crate::rtti_types::timestamp::TimestampTD;
 
 
 pub struct CacheFile {
