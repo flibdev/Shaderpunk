@@ -3,6 +3,7 @@
 #![allow(non_snake_case)]
 
 use enum_try_from::impl_enum_try_from;
+use strum_macros::{Display, EnumString};
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Eq)]
@@ -14,12 +15,12 @@ pub enum EnumError {
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, Debug)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone)]
     pub enum ETextureFilteringMin {
-        TFMin_Point          = 0,
-        TFMin_Linear         = 1,
-        TFMin_Anisotropic    = 2,
-        TFMin_AnisotropicLow = 3,
+        Point          = 0,
+        Linear         = 1,
+        Anisotropic    = 2,
+        AnisotropicLow = 3,
     },
     u8,
     EnumError,
@@ -29,10 +30,10 @@ impl_enum_try_from!(
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, Debug)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone)]
     pub enum ETextureFilteringMag {
-        TFMag_Point   = 0,
-        TFMag_Linear  = 1,
+        Point   = 0,
+        Linear  = 1,
     },
     u8,
     EnumError,
@@ -42,11 +43,11 @@ impl_enum_try_from!(
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, Debug)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone)]
     pub enum ETextureFilteringMip {
-        TFMip_None    = 0,
-        TFMip_Point   = 1,
-        TFMip_Linear  = 2,
+        None    = 0,
+        Point   = 1,
+        Linear  = 2,
     },
     u8,
     EnumError,
@@ -56,13 +57,13 @@ impl_enum_try_from!(
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, Debug)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone)]
     pub enum ETextureAddressing {
-        TA_Wrap       = 0,
-        TA_Mirror     = 1,
-        TA_Clamp      = 2,
-        TA_MirrorOnce = 3,
-        TA_Border     = 4,
+        Wrap       = 0,
+        Mirror     = 1,
+        Clamp      = 2,
+        MirrorOnce = 3,
+        Border     = 4,
     },
     u8,
     EnumError,
@@ -72,16 +73,16 @@ impl_enum_try_from!(
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, Debug)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone)]
     pub enum ETextureComparisonFunction {
-        TCF_None         = 0,
-        TCF_Less         = 1,
-        TCF_Equal        = 2,
-        TCF_LessEqual    = 3,
-        TCF_Greater      = 4,
-        TCF_NotEqual     = 5,
-        TCF_GreaterEqual = 6,
-        TCF_Always       = 7,
+        None         = 0,
+        Less         = 1,
+        Equal        = 2,
+        LessEqual    = 3,
+        Greater      = 4,
+        NotEqual     = 5,
+        GreaterEqual = 6,
+        Always       = 7,
     },
     u8,
     EnumError,
@@ -91,41 +92,86 @@ impl_enum_try_from!(
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, Debug)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone)]
     pub enum EMaterialModifier {
-        EMATMOD_HitProxy                = 0,
-        EMATMOD_WindData                = 1,
-        EMATMOD_ParticleParams          = 2,
-        EMATMOD_RemoteCamera            = 3,
-        EMATMOD_Mirror                  = 4,
-        EMATMOD_CustomStructBuffer      = 5,
-        EMATMOD_EffectParams            = 6,
-        EMATMOD_MotionMatrix            = 7,
-        EMATMOD_ColorAndTexture         = 8,
-        EMATMOD_MaterialParams          = 9,
-        EMATMOD_Eye                     = 10,
-        EMATMOD_Skin                    = 11,
-        EMATMOD_VehicleParams           = 12,
-        EMATMOD_Dismemberment           = 13,
-        EMATMOD_Garments                = 14,
-        EMATMOD_ShadowsDebugParams      = 15,
-        EMATMOD_MultilayeredDebug       = 16,
-        EMATMOD_ParallaxParams          = 17,
-        EMATMOD_HighlightsParams        = 18,
-        EMATMOD_DebugColoring           = 19,
-        EMATMOD_DrawBufferMask          = 20,
-        EMATMOD_AutoSpawnData           = 21,
-        EMATMOD_DestructionRegions      = 22,
-        EMATMOD_FloatTracks             = 23,
-        EMATMOD_AutoHideDistance        = 24,
-        EMATMOD_Rain                    = 25,
-        EMATMOD_PlanarReflections       = 26,
-        EMATMOD_WaterSim                = 27,
-        EMATMOD_TransparencyClipParams  = 28,
-        EMATMOD_FlatTireParams          = 29,
-        EMATMOD_SecondMultilayerParams  = 30,
-        EMATMOD_CrystalCoat             = 31,
-        EMATMOD_MAX                     = 32,
+        HitProxy                = 0,
+        WindData                = 1,
+        ParticleParams          = 2,
+        RemoteCamera            = 3,
+        Mirror                  = 4,
+        CustomStructBuffer      = 5,
+        EffectParams            = 6,
+        MotionMatrix            = 7,
+        ColorAndTexture         = 8,
+        MaterialParams          = 9,
+        Eye                     = 10,
+        Skin                    = 11,
+        VehicleParams           = 12,
+        Dismemberment           = 13,
+        Garments                = 14,
+        ShadowsDebugParams      = 15,
+        MultilayeredDebug       = 16,
+        ParallaxParams          = 17,
+        HighlightsParams        = 18,
+        DebugColoring           = 19,
+        DrawBufferMask          = 20,
+        AutoSpawnData           = 21,
+        DestructionRegions      = 22,
+        FloatTracks             = 23,
+        AutoHideDistance        = 24,
+        Rain                    = 25,
+        PlanarReflections       = 26,
+        WaterSim                = 27,
+        TransparencyClipParams  = 28,
+        FlatTireParams          = 29,
+        SecondMultilayerParams  = 30,
+        CrystalCoat             = 31,
+        MAX                     = 32,
+    },
+    u8,
+    EnumError,
+    EnumError::InvalidValue
+);
+
+
+impl_enum_try_from!(
+    #[repr(u8)]
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone, Display, EnumString)]
+    pub enum EMaterialVertexFactory
+    {
+        Terrain                             = 1,
+        MeshStatic                          = 2,
+        MeshSkinned                         = 3,
+        MeshExtSkinned                      = 4,
+        GarmentMeshSkinned                  = 5,
+        GarmentMeshExtSkinned               = 6,
+        MeshSpeedTree                       = 7,
+        ParticleBilboard                    = 8,
+        ParticleParallel                    = 9,
+        ParticleMotionBlur                  = 10,
+        ParticleSphereAligned               = 11,
+        ParticleVerticalFixed               = 12,
+        ParticleTrail                       = 13,
+        ParticleFacingTrail                 = 14,
+        ParticleScreen                      = 15,
+        ParticleBeam                        = 16,
+        ParticleFacingBeam                  = 17,
+        Decal                               = 18,
+        Debug                               = 19,
+        DrawBuffer                          = 20,
+        Fullscreen                          = 21,
+        MeshSkinnedVehicle                  = 22,
+        MeshStaticVehicle                   = 23,
+        MeshProcedural                      = 24,
+        MeshDestructible                    = 25,
+        MeshDestructibleSkinned             = 26,
+        MeshSkinnedLightBlockers            = 27,
+        MeshExtSkinnedLightBlockers         = 28,
+        GarmentMeshSkinnedLightBlockers     = 29,
+        GarmentMeshExtSkinnedLightBlockers  = 30,
+        MeshSkinnedSingleBone               = 31,
+        MeshProxy                           = 32,
+        MeshWindowProxy                     = 33,
     },
     u8,
     EnumError,

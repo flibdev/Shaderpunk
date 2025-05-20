@@ -1,6 +1,6 @@
+use std::hash::Hasher;
 use std::io;
 
-use anyhow::Error;
 use fnv_rs::{Fnv64, FnvHasher};
 
 //use crate::encode::Encode;
@@ -26,22 +26,22 @@ impl CName {
         self.0.as_str()
     }
 
-    pub fn as_hash64(&self) -> Result<u64, Error> {
+    pub fn as_hash64(&self) -> u64 {
         if self.0.len() == 0 || self.0 == CName::NONE {
-            Ok(0)
+            0
         }
         else {
             let bytes = self.0.as_bytes();
-            let hash = Fnv64::hash(bytes);
-            Ok(u64::from_be_bytes(hash.as_bytes().try_into()?))
+            let mut hasher = Fnv64::new();
+            hasher.write(bytes);
+            hasher.into()
         }
     }
 
-    pub fn as_hash32(&self) -> Result<u32, Error> {
-        let hash64 = self.as_hash64()?;
+    pub fn as_hash32(&self) -> u32 {
+        let hash64 = self.as_hash64();
         // CName hash key XOR mapping down to 32 bits
-        let hash32: u32 = ((hash64 >> 32) ^ (hash64 & 0xffffffff)).try_into()?;
-        Ok(hash32)
+        ((hash64 >> 32) ^ (hash64 & 0xffffffff)) as u32
     }
 }
 
@@ -84,5 +84,61 @@ impl Decode for CName {
 impl From<CName> for String {
     fn from(value: CName) -> Self {
         value.0
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+
+    use super::*;
+    
+    #[test]
+    fn empty_hash64() {
+        assert_eq!(CName::new("").as_hash64(), 0);
+    }
+
+    #[test]
+    fn empty_hash32() {
+        assert_eq!(CName::new("").as_hash32(), 0);
+    }
+
+    #[test]
+    fn empty_string() {
+        assert_eq!(CName::new("").as_str(), CName::NONE);
+    }
+
+    #[test]
+    fn known_hash64() {
+        assert_eq!(CName::new("3d_map_solid").as_hash64(), 0xAF5990DA96BB288F);
+    }
+
+    #[test]
+    fn known_hash32() {
+        assert_eq!(CName::new("3d_map_solid").as_hash32(), 0x39E2B855);
+    }
+
+    
+    #[test]
+    fn decode_empty() {
+        let bytes = [ 0x00 ];
+        let mut reader = Cursor::new(bytes);
+        let cname: CName = reader.decode().unwrap();
+        
+        assert_eq!(cname.as_str(), CName::NONE);
+    }
+
+    #[test]
+    fn decode_known() {
+        // Known value from shader_final.cache
+        let bytes = [
+            0x8F, 0x69, 0x6E, 0x63, 0x6C, 0x75, 0x64, 0x65,
+            0x5F, 0x68, 0x61, 0x69, 0x72, 0x2E, 0x66, 0x78,
+        ];
+        let mut reader = Cursor::new(bytes);
+        let cname: CName = reader.decode().unwrap();
+        
+        assert_eq!(cname.as_str(), "include_hair.fx");
     }
 }

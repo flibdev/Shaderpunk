@@ -12,39 +12,50 @@ use crate::types::timestamp::TimestampTD;
 
 pub struct CacheFile {
     pub info: InfoBlock,
-    pub shaders: Vec<ShaderBlock>,
-    pub materials: Vec<MaterialBlock>,
+    pub shaders: Vec<ShaderChunk>,
+    pub materials: Vec<MaterialChunk>,
     pub params: Vec<ParamsChunk>,
+    pub timestamps: Vec<TimestampChunk>,
+    pub includes: Vec<IncludesChecksumChunk>,
 }
 
 impl CacheFile {
     pub fn load<I: io::Read + io::Seek>(input: &mut I) -> io::Result<Self> {
         // Info block is stored as a fixed-size footer
-        input.seek(io::SeekFrom::End(-InfoBlock::SIZE))?;
+        let info_start = input.seek(io::SeekFrom::End(-InfoBlock::SIZE))?;
         let info: InfoBlock = input.decode()?;
 
         // Shaders start at the beginning of the file
         input.seek(io::SeekFrom::Start(0))?;
 
-        let mut shaders: Vec<ShaderBlock> = Vec::with_capacity(info.shader_count as usize);
+        //----------------------------------------------------------------------
+        // Shaders
+
+        let mut shaders: Vec<ShaderChunk> = Vec::with_capacity(info.shader_count as usize);
         for _ in 0..info.shader_count {
             shaders.push(input.decode()?);
         }
 
         // Sanity check
         if input.stream_position().unwrap() != info.material_offset {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "Shader block size mismatch"));
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "ShaderChunk size mismatch"));
         }
 
-        let mut materials: Vec<MaterialBlock> = Vec::with_capacity(info.material_count as usize);
+        //----------------------------------------------------------------------
+        // Materials
+
+        let mut materials: Vec<MaterialChunk> = Vec::with_capacity(info.material_count as usize);
         for _ in 0..info.material_count {
             materials.push(input.decode()?);
         }
 
         // Sanity check
         if input.stream_position().unwrap() != info.param_offset {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "Shader block size mismatch"));
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "MaterialChunk size mismatch"));
         }
+
+        //----------------------------------------------------------------------
+        // Material Params
 
         let mut params: Vec<ParamsChunk> = Vec::with_capacity(info.param_count as usize);
         for _ in 0..info.param_count {
@@ -53,7 +64,35 @@ impl CacheFile {
 
         // Sanity check
         if input.stream_position().unwrap() != info.time_offset {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "Shader block size mismatch"));
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "ParamsChunk size mismatch"));
+        }
+
+        //----------------------------------------------------------------------
+        // Material Timestamps
+
+        let timestamp_count: u32 = input.decode()?;
+        let mut timestamps: Vec<TimestampChunk> = Vec::with_capacity(timestamp_count as usize);
+        for _ in 0..timestamp_count {
+            timestamps.push(input.decode()?);
+        }
+
+        // Sanity check
+        if input.stream_position().unwrap() != info.path_offset {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "TimestampChunk size mismatch"));
+        }
+
+        //----------------------------------------------------------------------
+        // Include Checksums
+
+        let include_count: u32 = input.decode()?;
+        let mut includes: Vec<IncludesChecksumChunk> = Vec::with_capacity(include_count as usize);
+        for _ in 0..include_count {
+            includes.push(input.decode()?);
+        }
+
+        // Sanity check
+        if input.stream_position().unwrap() != info_start {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "IncludesChecksumChunk size mismatch"));
         }
 
 
@@ -61,7 +100,9 @@ impl CacheFile {
             info,
             shaders,
             materials,
-            params
+            params,
+            timestamps,
+            includes
         };
         Ok(cache)
     }
@@ -161,13 +202,13 @@ impl Decode for InfoBlock {
 
 
 
-pub struct ShaderBlock {
+pub struct ShaderChunk {
     pub hash: u64,
     pub params: u64,
     pub compiled: Vec<u8>
 }
 
-impl Decode for ShaderBlock {
+impl Decode for ShaderChunk {
     fn decode<I: io::Read>(input: &mut I) -> io::Result<Self> {
         let hash: u64 = input.decode()?;
         let params: u64 = input.decode()?;
@@ -175,7 +216,7 @@ impl Decode for ShaderBlock {
         let mut compiled: Vec<u8> = vec![0u8; size as usize];
         input.read_exact(&mut compiled)?;
 
-        Ok(ShaderBlock {
+        Ok(ShaderChunk {
             hash,
             params,
             compiled
@@ -184,7 +225,7 @@ impl Decode for ShaderBlock {
 }
 
 
-pub struct MaterialBlock {
+pub struct MaterialChunk {
     pub hash: u64,
     pub name: CName,
     pub vs_hash: u64,
@@ -194,7 +235,7 @@ pub struct MaterialBlock {
     pub ps_samplers: Vec<SampleStateInfo>
 }
 
-impl Decode for MaterialBlock {
+impl Decode for MaterialChunk {
     fn decode<I: io::Read>(input: &mut I) -> io::Result<Self> {
         let mut _u32: u32;
         let mut _u64: u64;
@@ -229,7 +270,7 @@ impl Decode for MaterialBlock {
             ps_samplers.push(input.decode()?);
         }
 
-        Ok(MaterialBlock {
+        Ok(MaterialChunk {
             hash,
             name,
             vs_hash,
@@ -266,6 +307,7 @@ impl Decode for ParamChunk {
 pub struct ParamsChunk {
     pub hash: u64,
     pub mat_mod_mask: u32,
+    pub param_count: u32,
     pub params: Vec<ParamChunk>,
 }
 
@@ -273,16 +315,47 @@ impl Decode for ParamsChunk {
     fn decode<I: io::Read>(input: &mut I) -> io::Result<Self> {
         let hash: u64 = input.decode()?;
         let mat_mod_mask: u32 = input.decode()?;
-        let count: u32 = input.decode()?;
-        let mut params: Vec<ParamChunk> = Vec::with_capacity(count as usize);
-        for _ in 0..count {
+        let param_count: u32 = input.decode()?;
+        let mut params: Vec<ParamChunk> = Vec::with_capacity(param_count as usize);
+        for _ in 0..param_count {
             params.push(input.decode()?);
         }
 
         Ok(ParamsChunk {
             hash,
             mat_mod_mask,
+            param_count,
             params
         })
     }
 }
+
+
+pub struct TimestampChunk {
+    pub hash: u32,
+    pub timestamp: TimestampTD,
+}
+
+impl Decode for TimestampChunk {
+    fn decode<I: io::Read>(input: &mut I) -> io::Result<Self> {
+        let hash: u32 = input.decode()?;
+        let timestamp: TimestampTD = input.decode()?;
+
+        Ok(TimestampChunk { hash, timestamp })
+    }
+}
+
+pub struct IncludesChecksumChunk {
+    pub path: CName,
+    pub hash: u64,
+}
+
+impl Decode for IncludesChecksumChunk {
+    fn decode<I: io::Read>(input: &mut I) -> io::Result<Self> {
+        let path: CName = input.decode()?;
+        let hash: u64 = input.decode()?;
+
+        Ok(IncludesChecksumChunk { path, hash })
+    }
+}
+
