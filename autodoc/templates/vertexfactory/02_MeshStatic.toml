@@ -1,0 +1,12 @@
+id = "MeshStatic"
+desc = "Base static mesh."
+layout = '''
+struct VS_INPUT
+{
+    float3 Position : POSITION0;
+    float2 UV       : TEXCOORD0;
+    float3 Normal   : NORMAL;
+    float4 Tangent  : TANGENT;
+    uint   VertexID : SYS_VERTEX_ID;
+}
+'''
