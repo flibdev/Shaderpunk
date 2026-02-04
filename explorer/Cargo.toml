@@ -1,0 +1,22 @@
+[package]
+name = "Explorer"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+shaderpunk = { path = "../core" }
+anyhow.workspace = true
+serde.workspace = true
+vmap.workspace = true
+egui = "0.31"
+eframe = { version = "0.31", default-features = false, features = [
+    "default_fonts", # Embed the default egui fonts.
+    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
+    "persistence",   # Enable restoring app state when restarting the app.
+] }
+egui_extras = "0.31.1"
+catppuccin-egui = { version = "5.5.0", default-features = false, features = ["egui31"] }
+rfd = "0.15.3"
+fnv_rs = "0.4.4"
+
