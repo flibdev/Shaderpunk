@@ -1,8 +1,8 @@
 use std::io;
 
 //use crate::encode::Encode;
-use crate::decode::{Decode, DecodeExt};
-use crate::encode::{Encode, EncodeExt};
+use crate::bundle::decode::{Decode, DecodeExt};
+use crate::bundle::encode::{Encode, EncodeExt};
 
 pub struct VLQInt32(i32);
 

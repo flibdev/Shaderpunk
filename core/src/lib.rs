@@ -1,7 +1,7 @@
-pub mod cachefile;
-pub mod encode;
-pub mod decode;
-pub mod hashmap;
 pub mod rtti_types;
+pub mod bundle;
+pub mod hashmap;
 
+pub mod shader;
 pub mod material;
+pub mod manager;

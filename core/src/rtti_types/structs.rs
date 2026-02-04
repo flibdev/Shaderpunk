@@ -2,11 +2,13 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use crate::decode::{Decode, DecodeExt};
-use crate::encode::{Encode, EncodeExt};
+use serde::Serialize;
+
+use crate::bundle::decode::{Decode, DecodeExt};
+use crate::bundle::encode::{Encode, EncodeExt};
 use crate::rtti_types::enums::*;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize)]
 pub struct SampleStateInfo {
     pub filteringMin: ETextureFilteringMin,
     pub filteringMag: ETextureFilteringMag,

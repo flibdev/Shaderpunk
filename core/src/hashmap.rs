@@ -5,11 +5,6 @@ use paste::paste;
 
 use crate::rtti_types::cname::CName;
 
-macro_rules! hash_format {
-    (32) => { "[{:08X}]" };
-    (64) => { "[{:016X}]" };
-}
-
 macro_rules! create_passthru {
     ($x:literal) => { paste! {
         pub struct [<PassThruHasher $x>]([<u $x>]);
@@ -82,6 +77,11 @@ macro_rules! create_passthru {
 
         pub type [<CNameHashMap $x>]<T> = HashMap<[<CNameKey $x>], T, BuildHasherDefault<[<PassThruHasher $x>]>>;
     }};
+}
+
+macro_rules! hash_format {
+    (32) => { "[{:08X}]" };
+    (64) => { "[{:016X}]" };
 }
 
 create_passthru!(32);

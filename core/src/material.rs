@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use anyhow::Result;
 use fnv_rs::{Fnv32, FnvHasher};
 use regex::Regex;
@@ -6,16 +8,19 @@ use once_cell::sync::Lazy;
 use crate::rtti_types::enums::EMaterialVertexFactory;
 use crate::rtti_types::structs::SampleStateInfo;
 
+use crate::shader::Shader;
 
+#[derive(Clone)]
 pub struct Material {
     pub name: String,
     pub techniques: Vec<Technique>,
 }
 
-
+#[derive(Clone)]
 pub struct Technique {
     pub desc: TechniqueDesc,
-
+    pub vs: Option<Rc<Shader>>,
+    pub ps: Option<Rc<Shader>>,
     pub vs_samplers: Vec<SampleStateInfo>,
     pub ps_samplers: Vec<SampleStateInfo>,
 }
@@ -33,12 +38,7 @@ impl PartialOrd for Technique {
 }
 
 
-pub struct Shader {
-    pub hash: u64,
-
-}
-
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub struct TechniqueDesc {
     pub index: u32,
     pub pass: String,
@@ -131,10 +131,10 @@ impl TechniqueDesc {
 impl PartialOrd for TechniqueDesc {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(
-            self.index.cmp(&other.index)
+            self.encode_vf_id().cmp(&other.encode_vf_id())
+            .then(self.index.cmp(&other.index))
             .then(self.pass.cmp(&other.pass))
-            .then(self.encode_vf_id().cmp(&other.encode_vf_id()))
-            .then(self.pass_index.cmp(&other.pass_index))            
+            .then(self.pass_index.cmp(&other.pass_index))
         )
     }
 }

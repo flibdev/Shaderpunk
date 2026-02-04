@@ -2,15 +2,16 @@ use std::io;
 
 //use hashbrown::HashMap;
 
-use crate::decode::{Decode, DecodeExt};
+use chrono::Utc;
+
+use crate::bundle::decode::{Decode, DecodeExt};
+use crate::bundle::encode::{Encode, EncodeExt};
 use crate::rtti_types::cname::CName;
 use crate::rtti_types::structs::SampleStateInfo;
-//use crate::encode::Encode;
-//use crate::hashmap::PassThruHasher;
 use crate::rtti_types::timestamp::TimestampTD;
 
 
-pub struct CacheFile {
+pub struct DynamicCacheFile {
     pub info: InfoBlock,
     pub shaders: Vec<ShaderChunk>,
     pub materials: Vec<MaterialChunk>,
@@ -19,7 +20,7 @@ pub struct CacheFile {
     pub includes: Vec<IncludesChecksumChunk>,
 }
 
-impl CacheFile {
+impl DynamicCacheFile {
     pub fn load<I: io::Read + io::Seek>(input: &mut I) -> io::Result<Self> {
         // Info block is stored as a fixed-size footer
         let info_start = input.seek(io::SeekFrom::End(-InfoBlock::SIZE))?;
@@ -42,7 +43,7 @@ impl CacheFile {
         }
 
         //----------------------------------------------------------------------
-        // Materials
+        // Material Techniques
 
         let mut materials: Vec<MaterialChunk> = Vec::with_capacity(info.material_count as usize);
         for _ in 0..info.material_count {
@@ -77,7 +78,7 @@ impl CacheFile {
         }
 
         // Sanity check
-        if input.stream_position().unwrap() != info.path_offset {
+        if input.stream_position().unwrap() != info.include_offset {
             return Err(io::Error::new(io::ErrorKind::InvalidData, "TimestampChunk size mismatch"));
         }
 
@@ -96,7 +97,7 @@ impl CacheFile {
         }
 
 
-        let cache = CacheFile {
+        let cache = DynamicCacheFile {
             info,
             shaders,
             materials,
@@ -106,11 +107,98 @@ impl CacheFile {
         };
         Ok(cache)
     }
+
+    pub fn save<O: io::Write + io::Seek>(&self, output: &mut O) -> io::Result<()> {
+        
+        let mut info: InfoBlock = InfoBlock {
+            timestamp: TimestampTD::from(Utc::now()),
+            unknown_hash: 0,
+            shader_count: self.shaders.len() as u32,
+            shader_size: 0,
+            material_count: self.materials.len() as u32,
+            material_size: 0,
+            material_offset: 0,
+            param_count: self.params.len() as u32,
+            param_size: 0,
+            param_offset: 0,
+            include_count: self.includes.len() as u32,
+            include_size: 0,
+            include_offset: 0,
+            time_size: 0,
+            time_offset: 0,
+        };
+
+        //----------------------------------------------------------------------
+        // Shaders
+
+        for shader in &self.shaders {
+            output.encode(shader)?;
+        }
+
+        info.shader_size = output.stream_position()?;
+
+        //----------------------------------------------------------------------
+        // Material Techniques
+
+        info.material_offset = info.shader_size; // output.stream_position()?;
+
+        for material in &self.materials {
+            output.encode(material)?;
+        }
+        
+        info.material_size = output.stream_position()? - info.material_offset;
+
+        //----------------------------------------------------------------------
+        // Material Params
+
+        info.param_offset = output.stream_position()?;
+
+        for param in &self.params {
+            output.encode(param)?;
+        }
+
+        info.param_size = output.stream_position()? - info.param_offset;
+
+        //----------------------------------------------------------------------
+        // Material Timestamps
+
+        info.time_offset = output.stream_position()?;
+        
+        let timestamp_count: u32 = self.timestamps.len() as u32;
+        output.encode(&timestamp_count)?;
+
+        for timestamp in &self.timestamps {
+            output.encode(timestamp)?;
+        }
+
+        info.time_size = output.stream_position()? - info.time_offset;
+
+        //----------------------------------------------------------------------
+        // Include Checksums
+
+        info.include_offset = output.stream_position()?;
+        
+        let includes_count: u32 = self.includes.len() as u32;
+        output.encode(&includes_count)?;
+
+        for include in &self.includes {
+            output.encode(include)?;
+        }
+
+        info.include_size = output.stream_position()? - info.include_offset;
+
+        //----------------------------------------------------------------------
+        // Info block
+
+        output.encode(&info)?;
+
+        Ok(())
+    }
 }
 
 
 #[allow(dead_code)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct InfoBlock {
     timestamp: TimestampTD,
     unknown_hash: u64,
@@ -126,9 +214,9 @@ pub struct InfoBlock {
     param_size: u64,
     param_offset: u64,
 
-    path_count: u32,
-    path_size: u64,
-    path_offset: u64,
+    include_count: u32,
+    include_size: u64,
+    include_offset: u64,
     
     time_size: u64,
     time_offset: u64,
@@ -149,7 +237,7 @@ impl Decode for InfoBlock {
         let material_count: u32 = input.decode()?;
         let param_count: u32    = input.decode()?;
 
-        // Some kind of file hash?
+        // Some kind of file hash? Checksum?
         let unknown_hash: u64   = input.decode()?;
 
         // Timestamps stored in same way as redscript cache,
@@ -191,17 +279,45 @@ impl Decode for InfoBlock {
             param_count,
             param_size,
             param_offset,
-            path_count,
-            path_offset,
-            path_size,
+            include_count: path_count,
+            include_offset: path_offset,
+            include_size: path_size,
             time_size,
             time_offset,
         })
     }
 }
 
+impl Encode for InfoBlock {
+    fn encode<O: io::Write>(&self, output: &mut O) -> io::Result<()> {
+        output.encode(&self.shader_count)?;
+        output.encode(&self.material_count)?;
+        output.encode(&self.param_count)?;
 
+        output.encode(&self.unknown_hash)?;
+        output.encode(&self.timestamp)?;
 
+        output.encode(&self.include_count)?;
+
+        output.encode(&self.shader_size)?;
+        output.encode(&self.material_size)?;
+        output.encode(&self.param_size)?;
+        output.encode(&self.include_size)?;
+        output.encode(&self.time_size)?;
+
+        output.encode(&self.material_offset)?;
+        output.encode(&self.param_offset)?;
+        output.encode(&self.time_offset)?;
+        output.encode(&self.include_offset)?;
+
+        output.encode(&InfoBlock::MAGIC)?;
+        output.encode(&InfoBlock::VERSION)?;
+
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
 pub struct ShaderChunk {
     pub hash: u64,
     pub params: u64,
@@ -224,7 +340,19 @@ impl Decode for ShaderChunk {
     }
 }
 
+impl Encode for ShaderChunk {
+    fn encode<O: io::Write>(&self, output: &mut O) -> io::Result<()> {
+        output.encode(&self.hash)?;
+        output.encode(&self.params)?;
+        let size: u32 = self.compiled.len() as u32;
+        output.encode(&size)?;
+        output.write_all(&self.compiled)?;
 
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
 pub struct MaterialChunk {
     pub hash: u64,
     pub name: CName,
@@ -283,8 +411,46 @@ impl Decode for MaterialChunk {
     }
 }
 
+impl Encode for MaterialChunk {
+    fn encode<O: io::Write>(&self, output: &mut O) -> io::Result<()> {
+        let _u32: u32 = 0;
+        let _u64: u64 = 0;
 
+        output.encode(&self.hash)?;
+        output.encode(&self.name)?;
+        
+        // Ignored by the game
+        output.encode(&_u32)?;
 
+        output.encode(&self.vs_hash)?;
+        output.encode(&self.ps_hash)?;
+        
+        // Ignored by the game
+        output.encode(&_u64)?;
+        output.encode(&_u64)?;
+
+        output.encode(&self.timestamp)?;
+
+        // Ignored by the game
+        output.encode(&_u32)?;
+
+        let vs_count: u32 = self.vs_samplers.len() as u32;
+        output.encode(&vs_count)?;
+        for vs in &self.vs_samplers {
+            output.encode(vs)?;
+        }
+
+        let ps_count: u32 = self.ps_samplers.len() as u32;
+        output.encode(&ps_count)?;
+        for ps in &self.ps_samplers {
+            output.encode(ps)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
 pub struct ParamChunk {
     pub name: CName,
     // Value? Lookup? Shader register?
@@ -304,6 +470,17 @@ impl Decode for ParamChunk {
     }
 }
 
+impl Encode for ParamChunk {
+    fn encode<O: io::Write>(&self, output: &mut O) -> io::Result<()> {
+        output.encode(&self.name)?;
+        output.encode(&self.value)?;
+        output.encode(&self.size)?;
+
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
 pub struct ParamsChunk {
     pub hash: u64,
     pub mat_mod_mask: u32,
@@ -330,7 +507,21 @@ impl Decode for ParamsChunk {
     }
 }
 
+impl Encode for ParamsChunk {
+    fn encode<O: io::Write>(&self, output: &mut O) -> io::Result<()> {
+        output.encode(&self.hash)?;
+        output.encode(&self.mat_mod_mask)?;
+        output.encode(&self.param_count)?;
 
+        for p in &self.params {
+            output.encode(p)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
 pub struct TimestampChunk {
     pub hash: u32,
     pub timestamp: TimestampTD,
@@ -345,6 +536,16 @@ impl Decode for TimestampChunk {
     }
 }
 
+impl Encode for TimestampChunk {
+    fn encode<O: io::Write>(&self, output: &mut O) -> io::Result<()> {
+        output.encode(&self.hash)?;
+        output.encode(&self.timestamp)?;
+
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
 pub struct IncludesChecksumChunk {
     pub path: CName,
     pub hash: u64,
@@ -359,3 +560,11 @@ impl Decode for IncludesChecksumChunk {
     }
 }
 
+impl Encode for IncludesChecksumChunk {
+    fn encode<O: io::Write>(&self, output: &mut O) -> io::Result<()> {
+        output.encode(&self.path)?;
+        output.encode(&self.hash)?;
+
+        Ok(())
+    }
+}

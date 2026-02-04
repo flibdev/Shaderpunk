@@ -3,10 +3,11 @@
 #![allow(non_snake_case)]
 
 use enum_try_from::impl_enum_try_from;
+use serde::Serialize;
 use strum_macros::{Display, EnumString};
 use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Error, Debug, PartialEq, Eq, Serialize)]
 pub enum EnumError {
     #[error("Invalid Value")]
     InvalidValue,
@@ -15,7 +16,7 @@ pub enum EnumError {
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, Debug, Copy, Clone)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone, Serialize)]
     pub enum ETextureFilteringMin {
         Point          = 0,
         Linear         = 1,
@@ -30,7 +31,7 @@ impl_enum_try_from!(
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, Debug, Copy, Clone)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone, Serialize)]
     pub enum ETextureFilteringMag {
         Point   = 0,
         Linear  = 1,
@@ -43,7 +44,7 @@ impl_enum_try_from!(
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, Debug, Copy, Clone)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone, Serialize)]
     pub enum ETextureFilteringMip {
         None    = 0,
         Point   = 1,
@@ -57,7 +58,7 @@ impl_enum_try_from!(
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, Debug, Copy, Clone)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone, Serialize)]
     pub enum ETextureAddressing {
         Wrap       = 0,
         Mirror     = 1,
@@ -73,7 +74,7 @@ impl_enum_try_from!(
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, Debug, Copy, Clone)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone, Serialize)]
     pub enum ETextureComparisonFunction {
         None         = 0,
         Less         = 1,
@@ -92,7 +93,7 @@ impl_enum_try_from!(
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, Debug, Copy, Clone)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone, Serialize)]
     pub enum EMaterialModifier {
         HitProxy                = 0,
         WindData                = 1,
@@ -136,9 +137,10 @@ impl_enum_try_from!(
 
 impl_enum_try_from!(
     #[repr(u8)]
-    #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone, Display, EnumString)]
+    #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone, Display, Serialize, EnumString, Hash)]
     pub enum EMaterialVertexFactory
     {
+        Invalid                             = 0,
         Terrain                             = 1,
         MeshStatic                          = 2,
         MeshSkinned                         = 3,
@@ -173,6 +175,47 @@ impl_enum_try_from!(
         MeshProxy                           = 32,
         MeshWindowProxy                     = 33,
     },
+    u8,
+    EnumError,
+    EnumError::InvalidValue
+);
+
+impl Default for EMaterialVertexFactory {
+    fn default() -> Self {
+        EMaterialVertexFactory::Invalid
+    }
+}
+
+
+impl_enum_try_from!(
+    #[repr(u8)]
+    #[derive(PartialEq, Eq, Debug, Copy, Clone, Serialize)]
+    pub enum EFeatureFlag
+	{
+		Default                     =  0,
+		Shadows                     =  1,
+		HitProxies                  =  2,
+		Selection                   =  3,
+		Wireframe                   =  4,
+		VelocityBuffer              =  5,
+		DebugDraw_BlendOff          =  6,
+		DebugDraw_BlendOn           =  7,
+		DynamicDecals               =  8,
+		Highlights                  =  9,
+        Overdraw                    = 10,
+		IndirectInstancedGrass      = 11,
+		DecalsOnStaticObjects       = 12,
+		DecalsOnDynamicObjects      = 13,
+		MaskParticlesInsideCar      = 14,
+		MaskParticlesInsideInterior = 15,
+		MaskTXAA                    = 16,
+		DistantShadows              = 17,
+		FloatTracks                 = 18,
+		Rain                        = 19,
+		NumLights                   = 20,
+		DepthPrepass                = 21,
+		DecalsOnAllObjects          = 22,
+	},
     u8,
     EnumError,
     EnumError::InvalidValue

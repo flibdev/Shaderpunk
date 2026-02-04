@@ -4,8 +4,8 @@ use std::io;
 use fnv_rs::{Fnv64, FnvHasher};
 
 //use crate::encode::Encode;
-use crate::decode::{Decode, DecodeExt};
-use crate::encode::{Encode, EncodeExt};
+use crate::bundle::decode::{Decode, DecodeExt};
+use crate::bundle::encode::{Encode, EncodeExt};
 use crate::rtti_types::vlqint32::VLQInt32;
 
 #[derive(Debug, Default, Clone)]

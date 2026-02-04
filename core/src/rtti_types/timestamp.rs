@@ -3,8 +3,8 @@ use std::{fmt, io};
 use modular_bitfield::prelude::*;
 use chrono::{Datelike, Timelike};
 
-use crate::encode::{Encode, EncodeExt};
-use crate::decode::{Decode, DecodeExt};
+use crate::bundle::encode::Encode;
+use crate::bundle::decode::{Decode, DecodeExt};
 
 /// Timestamp stored as Date then Time, as found in redscript and the static cache
 #[bitfield]
@@ -71,7 +71,8 @@ macro_rules! timestamp_impl {
         }
 
         impl $t {
-            fn from<T>(dt: T) -> Self
+            #[allow(dead_code)]
+            pub fn from<T>(dt: T) -> Self
             where T : Datelike + Timelike {
                 let mut s = Self::default();
                 s.set_year(dt.year() as u16);
@@ -97,8 +98,10 @@ mod tests {
 
     use chrono::{DateTime, TimeDelta, TimeZone, Utc};
 
+    use crate::bundle::encode::EncodeExt;
+
     use super::*;
-    
+        
     #[test]
     fn decode_td() {
         let bytes = [ 0x4D, 0xA6, 0x0B, 0x01, 0x00, 0x30, 0x90, 0x7E ];
